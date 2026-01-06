@@ -606,13 +606,24 @@ enum ParseError {
 }
 
 /// Parse response body as result types.
+///
+/// Uses `read_unaligned` because the response buffer may not be properly
+/// aligned for types with alignment requirements (e.g., Account has u128
+/// fields requiring 16-byte alignment, but Vec<u8> only guarantees 8-byte).
 fn parse_results<R: Copy>(data: &[u8]) -> Vec<R> {
-    let count = data.len() / std::mem::size_of::<R>();
+    let size = std::mem::size_of::<R>();
+    let count = data.len() / size;
     if count == 0 {
         return Vec::new();
     }
-    let ptr = data.as_ptr() as *const R;
-    unsafe { std::slice::from_raw_parts(ptr, count) }.to_vec()
+
+    let mut results = Vec::with_capacity(count);
+    for i in 0..count {
+        let offset = i * size;
+        let result = unsafe { std::ptr::read_unaligned(data[offset..].as_ptr() as *const R) };
+        results.push(result);
+    }
+    results
 }
 
 // ============================================================================
@@ -793,5 +804,26 @@ mod tests {
         let data: [u8; 8] = [1, 0, 0, 0, 2, 0, 0, 0];
         let results: Vec<u32> = parse_results(&data);
         assert_eq!(results, vec![1, 2]);
+    }
+
+    #[test]
+    fn test_parse_results_u128() {
+        // Test with u128 to verify unaligned reads work
+        let mut data = vec![0u8; 32];
+        // First u128: 0x0102030405060708090a0b0c0d0e0f10
+        for i in 0..16 {
+            data[i] = (i + 1) as u8;
+        }
+        // Second u128: all 0xFF
+        for i in 16..32 {
+            data[i] = 0xFF;
+        }
+        let results: Vec<u128> = parse_results(&data);
+        assert_eq!(results.len(), 2);
+        assert_eq!(
+            results[0],
+            0x100f0e0d0c0b0a090807060504030201u128
+        );
+        assert_eq!(results[1], u128::MAX);
     }
 }

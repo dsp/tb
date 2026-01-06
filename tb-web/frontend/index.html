@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TigerBeetle Web</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TigerBeetle Web</h1>
+            <nav id="main-nav">
+                <a href="/" class="nav-link active" data-page="dashboard">Dashboard</a>
+                <a href="/accounts" hx-get="/accounts.html" hx-target="#main" hx-push-url="true" class="nav-link" data-page="accounts">Accounts</a>
+                <a href="/transfers" hx-get="/transfers.html" hx-target="#main" hx-push-url="true" class="nav-link" data-page="transfers">Transfers</a>
+            </nav>
+        </header>
+
+        <main id="main">
+            <section class="dashboard">
+                <h2>Dashboard</h2>
+
+                <div class="recent-section">
+                    <h3>Recent Accounts</h3>
+                    <div id="recent-accounts" hx-get="/api/v1/accounts?limit=10" hx-trigger="load">
+                        <div class="loading">Loading accounts...</div>
+                    </div>
+                </div>
+
+                <div class="recent-section">
+                    <h3>Recent Transfers</h3>
+                    <div id="recent-transfers" hx-get="/api/v1/transfers?limit=10&reversed=true" hx-trigger="load">
+                        <div class="loading">Loading transfers...</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>TigerBeetle Web Interface</p>
+        </footer>
+    </div>
+
+    <script src="/dist/main.js" type="module"></script>
+    <script>
+        // Handle navigation active state
+        document.addEventListener('htmx:afterSwap', function(event) {
+            // Update active nav link based on URL
+            const path = window.location.pathname;
+            document.querySelectorAll('#main-nav .nav-link').forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                if (path === href || (path === '/' && href === '/')) {
+                    link.classList.add('active');
+                } else if (href !== '/' && path.startsWith(href)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Handle click on nav links
+        document.querySelectorAll('#main-nav .nav-link').forEach(link => {
+            link.addEventListener('click', function() {
+                document.querySelectorAll('#main-nav .nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Set initial active state based on URL
+        (function() {
+            const path = window.location.pathname;
+            document.querySelectorAll('#main-nav .nav-link').forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                if (path === href || (path === '/' && href === '/')) {
+                    link.classList.add('active');
+                } else if (href !== '/' && path.startsWith(href)) {
+                    link.classList.add('active');
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<section class="transfers-page">
+    <h2>Transfers</h2>
+
+    <div class="filters">
+        <form hx-get="/api/v1/transfers" hx-target="#transfers-table" hx-trigger="submit">
+            <input type="number" name="ledger" placeholder="Ledger">
+            <input type="number" name="code" placeholder="Code">
+            <input type="number" name="limit" placeholder="Limit" value="100">
+            <label>
+                <input type="checkbox" name="reversed" value="true"> Newest first
+            </label>
+            <button type="submit" class="btn">Filter</button>
+        </form>
+    </div>
+
+    <div class="recent-section">
+        <div id="transfers-table" hx-get="/api/v1/transfers?limit=100&reversed=true" hx-trigger="load">
+            <div class="loading">Loading transfers...</div>
+        </div>
+    </div>
+</section>

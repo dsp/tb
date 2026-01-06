@@ -1,0 +1,18 @@
+[package]
+name = "tb-gen"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Test data generator for TigerBeetle"
+
+[[bin]]
+name = "tb-gen"
+path = "src/main.rs"
+
+[dependencies]
+tb-rs = { path = "../tb-rs" }
+clap = { version = "4", features = ["derive"] }
+rand = "0.8"
+tokio-uring = "0.5"

@@ -1,0 +1,18 @@
+<section class="accounts-page">
+    <h2>Accounts</h2>
+
+    <div class="filters">
+        <form hx-get="/api/v1/accounts" hx-target="#accounts-table" hx-trigger="submit">
+            <input type="number" name="ledger" placeholder="Ledger">
+            <input type="number" name="code" placeholder="Code">
+            <input type="number" name="limit" placeholder="Limit" value="100">
+            <button type="submit" class="btn">Filter</button>
+        </form>
+    </div>
+
+    <div class="recent-section">
+        <div id="accounts-table" hx-get="/api/v1/accounts?limit=100" hx-trigger="load">
+            <div class="loading">Loading accounts...</div>
+        </div>
+    </div>
+</section>

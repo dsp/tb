@@ -1684,6 +1684,7 @@ dependencies = [
  "serde_json",
  "tb-rs",
  "tokio",
+ "tokio-uring",
  "tower-http",
  "tracing",
  "tracing-subscriber",
