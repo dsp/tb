@@ -3,6 +3,15 @@
 //! This crate provides a high-performance client for [TigerBeetle](https://tigerbeetle.com),
 //! the financial transactions database.
 //!
+//! # Compatibility
+//!
+//! **This client is compatible with TigerBeetle 0.16.x.**
+//!
+//! TigerBeetle requires exact client-server protocol compatibility. This crate's version
+//! follows the format `TB_VERSION+CRATE_VERSION` (e.g., `0.16.0+0.1.0`), where:
+//! - The main version (`0.16.0`) indicates TigerBeetle server compatibility
+//! - The build metadata (`+0.1.0`) indicates the library version
+//!
 //! # Features
 //!
 //! - **High-performance**: Uses io_uring for efficient async I/O on Linux
@@ -62,6 +71,10 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 
+// This crate requires Linux with io_uring support
+#[cfg(not(target_os = "linux"))]
+compile_error!("tb-rs requires Linux with io_uring support (kernel 5.6+). This crate does not support other platforms.");
+
 // Public modules
 mod client;
 mod error;
@@ -73,6 +86,15 @@ mod internal;
 // Re-export main types
 pub use client::{Client, ClientBuilder};
 pub use error::{ClientError, ProtocolError, Result};
+
+/// TigerBeetle server version this client is compatible with.
+///
+/// This client will only work correctly with TigerBeetle servers running this version
+/// or compatible versions in the same minor release series.
+pub const TIGERBEETLE_VERSION: &str = "0.16.0";
+
+/// Library version (independent of TigerBeetle version).
+pub const CRATE_VERSION: &str = "0.1.0";
 
 // Re-export protocol types
 pub use protocol::{

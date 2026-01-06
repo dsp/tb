@@ -27,7 +27,7 @@
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 
 use crate::error::{ClientError, ProtocolError, Result};
 use crate::internal::{BufferPool, Driver, OwnedBuf};
@@ -443,7 +443,7 @@ impl Client {
                 Err(ClientError::Timeout) => {
                     // Exponential backoff with jitter
                     timeout = std::cmp::min(timeout * 2, self.request_timeout_max);
-                    let jitter = self.rng.gen_range(0..timeout.as_millis() as u64 / 4);
+                    let jitter = self.rng.random_range(0..timeout.as_millis() as u64 / 4);
                     timeout += Duration::from_millis(jitter);
                 }
                 Err(e) => return Err(e),
@@ -461,7 +461,7 @@ impl Client {
 
         // Send to backup (hedging)
         if self.replica_count > 1 {
-            let backup_offset = self.rng.gen_range(1..self.replica_count as usize);
+            let backup_offset = self.rng.random_range(1..self.replica_count as usize);
             let backup = (primary + backup_offset) % self.replica_count as usize;
 
             if self.ensure_connected(backup).await.is_ok() {
@@ -703,8 +703,6 @@ impl ClientBuilder {
     ///
     /// This connects to the cluster and registers the client.
     pub async fn build(self) -> Result<Client> {
-        use rand::SeedableRng;
-
         if self.addresses.is_empty() {
             return Err(ClientError::Connection("no addresses provided".into()));
         }
@@ -731,7 +729,7 @@ impl ClientBuilder {
             request_number: 0,
             parent: 0,
             batch_size_limit: None,
-            rng: rand::rngs::StdRng::from_entropy(),
+            rng: rand::rngs::StdRng::from_os_rng(),
             send_buffer: vec![0u8; MESSAGE_SIZE_MAX as usize],
             buffer_pool,
             request_timeout: self.request_timeout,

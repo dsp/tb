@@ -2,6 +2,21 @@
 
 Native Rust client for [TigerBeetle](https://tigerbeetle.com), the financial transactions database.
 
+## Compatibility
+
+**This client is compatible with TigerBeetle 0.16.x.**
+
+TigerBeetle requires exact client-server protocol compatibility. This crate's version
+follows the format `TB_VERSION+CRATE_VERSION` (e.g., `0.16.0+0.1.0`), where:
+- The main version (`0.16.0`) indicates TigerBeetle server compatibility
+- The build metadata (`+0.1.0`) indicates the library version
+
+You can check compatibility at runtime:
+```rust
+println!("TigerBeetle version: {}", tb_rs::TIGERBEETLE_VERSION);
+println!("Library version: {}", tb_rs::CRATE_VERSION);
+```
+
 ## Features
 
 - **High-performance**: Uses io_uring for efficient async I/O on Linux
@@ -12,6 +27,7 @@ Native Rust client for [TigerBeetle](https://tigerbeetle.com), the financial tra
 
 - Linux (kernel 5.6+) with io_uring support
 - Rust 1.75+
+- TigerBeetle server 0.16.x
 
 ## Installation
 
@@ -19,8 +35,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tb-rs = "0.1"
+tb-rs = "0.16"  # Compatible with TigerBeetle 0.16.x
 ```
+
+Note: The version `"0.16"` matches all `0.16.x+*` versions. Cargo ignores build metadata for dependency resolution.
 
 ## Quick Start
 
