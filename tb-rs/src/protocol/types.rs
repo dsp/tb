@@ -4,6 +4,13 @@
 //! All types use `#[repr(C)]` to ensure C-compatible memory layout.
 
 use bitflags::bitflags;
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
+
+// Note: Types containing bitflags (Account, Transfer, filters) cannot use zerocopy
+// derives because bitflags! generates internal types without those traits.
+// The serialization code for these types uses safe patterns (slice::from_raw_parts
+// on #[repr(C)] types), and deserialization uses read_unaligned which handles
+// alignment correctly.
 
 /// TigerBeetle Account (128 bytes).
 ///
@@ -282,7 +289,7 @@ const _: () = assert!(std::mem::size_of::<CreateTransfersResult>() == 8);
 
 /// Register request body (256 bytes).
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, FromBytes, IntoBytes, Immutable, KnownLayout)]
 pub struct RegisterRequest {
     /// Batch size limit (0 for clients, >0 for prepares).
     pub batch_size_limit: u32,
@@ -303,7 +310,7 @@ const _: () = assert!(std::mem::size_of::<RegisterRequest>() == 256);
 
 /// Register result body (64 bytes).
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, FromBytes, IntoBytes, Immutable, KnownLayout)]
 pub struct RegisterResult {
     /// Maximum body size for requests.
     pub batch_size_limit: u32,

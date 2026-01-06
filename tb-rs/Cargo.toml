@@ -32,6 +32,7 @@ bitflags = "2"
 
 # For random client ID generation
 rand = "0.9"
+zerocopy = { version = "0.8.31", features = ["derive"] }
 
 [dev-dependencies]
 # For running async tests and examples

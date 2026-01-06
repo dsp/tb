@@ -3,6 +3,8 @@
 //! The header is the fixed-size prefix of all TigerBeetle network messages.
 //! It contains checksums, routing information, and command-specific fields.
 
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
+
 use super::checksum;
 use super::operation::{Command, Operation};
 
@@ -20,7 +22,7 @@ const HEADER_SIZE_USIZE: usize = HEADER_SIZE as usize;
 /// This struct matches the exact byte layout of the TigerBeetle protocol header.
 /// All padding fields must be zero.
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, FromBytes, IntoBytes, Immutable, KnownLayout)]
 pub struct Header {
     /// Checksum covering bytes 16-255 of this header.
     pub checksum: u128,
@@ -99,42 +101,42 @@ impl Header {
 
     /// Get this header as a Request header view.
     pub fn as_request(&self) -> &RequestHeader {
-        unsafe { &*(self.reserved_command.as_ptr() as *const RequestHeader) }
+        RequestHeader::ref_from_bytes(&self.reserved_command).unwrap()
     }
 
     /// Get this header as a mutable Request header view.
     pub fn as_request_mut(&mut self) -> &mut RequestHeader {
-        unsafe { &mut *(self.reserved_command.as_mut_ptr() as *mut RequestHeader) }
+        RequestHeader::mut_from_bytes(&mut self.reserved_command).unwrap()
     }
 
     /// Get this header as a Reply header view.
     pub fn as_reply(&self) -> &ReplyHeader {
-        unsafe { &*(self.reserved_command.as_ptr() as *const ReplyHeader) }
+        ReplyHeader::ref_from_bytes(&self.reserved_command).unwrap()
     }
 
     /// Get this header as a mutable Reply header view.
     pub fn as_reply_mut(&mut self) -> &mut ReplyHeader {
-        unsafe { &mut *(self.reserved_command.as_mut_ptr() as *mut ReplyHeader) }
+        ReplyHeader::mut_from_bytes(&mut self.reserved_command).unwrap()
     }
 
     /// Get this header as a PingClient header view.
     pub fn as_ping_client(&self) -> &PingClientHeader {
-        unsafe { &*(self.reserved_command.as_ptr() as *const PingClientHeader) }
+        PingClientHeader::ref_from_bytes(&self.reserved_command).unwrap()
     }
 
     /// Get this header as a mutable PingClient header view.
     pub fn as_ping_client_mut(&mut self) -> &mut PingClientHeader {
-        unsafe { &mut *(self.reserved_command.as_mut_ptr() as *mut PingClientHeader) }
+        PingClientHeader::mut_from_bytes(&mut self.reserved_command).unwrap()
     }
 
     /// Get this header as a PongClient header view.
     pub fn as_pong_client(&self) -> &PongClientHeader {
-        unsafe { &*(self.reserved_command.as_ptr() as *const PongClientHeader) }
+        PongClientHeader::ref_from_bytes(&self.reserved_command).unwrap()
     }
 
     /// Get this header as an Eviction header view.
     pub fn as_eviction(&self) -> &EvictionHeader {
-        unsafe { &*(self.reserved_command.as_ptr() as *const EvictionHeader) }
+        EvictionHeader::ref_from_bytes(&self.reserved_command).unwrap()
     }
 
     /// Calculate the header checksum (covers bytes 16-255).
@@ -171,28 +173,46 @@ impl Header {
 
     /// Get the header as a byte slice.
     pub fn as_bytes(&self) -> &[u8; HEADER_SIZE_USIZE] {
-        unsafe { &*(self as *const Header as *const [u8; HEADER_SIZE_USIZE]) }
+        zerocopy::IntoBytes::as_bytes(self)
+            .try_into()
+            .expect("Header size mismatch")
     }
 
     /// Get the header as a mutable byte slice.
     pub fn as_bytes_mut(&mut self) -> &mut [u8; HEADER_SIZE_USIZE] {
-        unsafe { &mut *(self as *mut Header as *mut [u8; HEADER_SIZE_USIZE]) }
+        zerocopy::IntoBytes::as_mut_bytes(self)
+            .try_into()
+            .expect("Header size mismatch")
     }
 
     /// Create a header from a byte slice.
     ///
-    /// # Safety
-    /// The slice must be exactly 256 bytes.
+    /// Returns the header reference, or panics if alignment/size is wrong.
+    /// Use `try_from_bytes` for a fallible version.
     pub fn from_bytes(bytes: &[u8; HEADER_SIZE_USIZE]) -> &Header {
-        unsafe { &*(bytes.as_ptr() as *const Header) }
+        Header::ref_from_bytes(bytes).expect("Header alignment error")
     }
 
     /// Create a mutable header from a byte slice.
     ///
-    /// # Safety
-    /// The slice must be exactly 256 bytes.
+    /// Returns the header reference, or panics if alignment/size is wrong.
+    /// Use `try_from_bytes_mut` for a fallible version.
     pub fn from_bytes_mut(bytes: &mut [u8; HEADER_SIZE_USIZE]) -> &mut Header {
-        unsafe { &mut *(bytes.as_mut_ptr() as *mut Header) }
+        Header::mut_from_bytes(bytes).expect("Header alignment error")
+    }
+
+    /// Try to create a header from a byte slice.
+    ///
+    /// Returns None if the bytes are misaligned for Header.
+    pub fn try_from_bytes(bytes: &[u8; HEADER_SIZE_USIZE]) -> Option<&Header> {
+        Header::ref_from_bytes(bytes).ok()
+    }
+
+    /// Try to create a mutable header from a byte slice.
+    ///
+    /// Returns None if the bytes are misaligned for Header.
+    pub fn try_from_bytes_mut(bytes: &mut [u8; HEADER_SIZE_USIZE]) -> Option<&mut Header> {
+        Header::mut_from_bytes(bytes).ok()
     }
 
     /// Validate the header structure.
@@ -224,7 +244,7 @@ impl Header {
 
 /// Request-specific header fields (overlay on reserved_command).
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, FromBytes, IntoBytes, Immutable, KnownLayout)]
 pub struct RequestHeader {
     /// Parent checksum for hash-chain verification.
     pub parent: u128,
@@ -281,7 +301,7 @@ impl RequestHeader {
 
 /// Reply-specific header fields (overlay on reserved_command).
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, FromBytes, IntoBytes, Immutable, KnownLayout)]
 pub struct ReplyHeader {
     /// Checksum of the corresponding request.
     pub request_checksum: u128,
@@ -318,7 +338,7 @@ impl ReplyHeader {
 
 /// PingClient-specific header fields.
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, FromBytes, IntoBytes, Immutable, KnownLayout)]
 pub struct PingClientHeader {
     /// Client identifier.
     pub client: u128,
@@ -342,7 +362,7 @@ const _: () = assert!(std::mem::size_of::<PingClientHeader>() == 128);
 
 /// PongClient-specific header fields.
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, FromBytes, IntoBytes, Immutable, KnownLayout)]
 pub struct PongClientHeader {
     /// Echoed ping timestamp.
     pub ping_timestamp_monotonic: u64,
@@ -367,7 +387,7 @@ const _: () = assert!(std::mem::size_of::<PongClientHeader>() == 128);
 /// Eviction-specific header fields.
 /// Layout: client (16 bytes) + reserved (111 bytes) + reason (1 byte) = 128 bytes
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, FromBytes, IntoBytes, Immutable, KnownLayout)]
 pub struct EvictionHeader {
     /// Client identifier.
     pub client: u128,

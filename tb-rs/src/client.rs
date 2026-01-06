@@ -28,6 +28,7 @@ use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
 use rand::{Rng, SeedableRng};
+use zerocopy::{FromBytes, IntoBytes};
 
 use crate::error::{ClientError, ProtocolError, Result};
 use crate::internal::{BufferPool, Driver, OwnedBuf};
@@ -320,14 +321,9 @@ impl Client {
 
         self.state = State::Registering;
 
-        // Build register request
+        // Build register request (zerocopy's as_bytes is safe for IntoBytes types)
         let body = RegisterRequest::default();
-        let body_bytes = unsafe {
-            std::slice::from_raw_parts(
-                &body as *const _ as *const u8,
-                std::mem::size_of::<RegisterRequest>(),
-            )
-        };
+        let body_bytes = body.as_bytes();
 
         let msg = RequestBuilder::new(self.cluster, self.id)
             .session(0)
@@ -343,13 +339,10 @@ impl Client {
         // Send and wait for reply
         let reply = self.send_request_with_retry(msg).await?;
 
-        // Parse register result
+        // Parse register result (use ref_from_bytes which handles alignment safely)
         let body = reply.body();
-        if body.len() < std::mem::size_of::<RegisterResult>() {
-            return Err(ClientError::Protocol(ProtocolError::InvalidSize));
-        }
-
-        let result: &RegisterResult = unsafe { &*(body.as_ptr() as *const RegisterResult) };
+        let result = RegisterResult::ref_from_bytes(body)
+            .map_err(|_| ClientError::Protocol(ProtocolError::InvalidSize))?;
 
         // Update state
         self.batch_size_limit = Some(result.batch_size_limit);
@@ -367,12 +360,13 @@ impl Client {
             return Err(ClientError::NotRegistered);
         }
 
-        // Serialize events
+        // Serialize events to bytes.
+        // SAFETY: This is safe because:
+        // 1. All event types (Account, Transfer, etc.) are #[repr(C)] with known layout
+        // 2. The slice has the same lifetime as the input
+        // 3. The resulting byte count is exactly size_of_val(events)
         let events_bytes = unsafe {
-            std::slice::from_raw_parts(
-                events.as_ptr() as *const u8,
-                std::mem::size_of_val(events),
-            )
+            std::slice::from_raw_parts(events.as_ptr() as *const u8, std::mem::size_of_val(events))
         };
 
         // Apply multi-batch encoding if needed
@@ -620,6 +614,8 @@ fn parse_results<R: Copy>(data: &[u8]) -> Vec<R> {
     let mut results = Vec::with_capacity(count);
     for i in 0..count {
         let offset = i * size;
+        // SAFETY: read_unaligned handles arbitrary alignment. The bounds are checked
+        // by the count calculation (count = data.len() / size), ensuring offset + size <= data.len().
         let result = unsafe { std::ptr::read_unaligned(data[offset..].as_ptr() as *const R) };
         results.push(result);
     }
