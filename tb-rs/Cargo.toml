@@ -1,0 +1,50 @@
+[package]
+name = "tb-rs"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Native Rust client for TigerBeetle"
+readme = "README.md"
+keywords = ["tigerbeetle", "database", "financial", "accounting", "ledger"]
+categories = ["database", "asynchronous"]
+rust-version = "1.75"
+
+# Exclude test fixtures and development files from the published crate
+exclude = [
+    "tests/",
+    ".gitignore",
+]
+
+[dependencies]
+# Cryptography for Aegis128L checksums
+aegis = "0.9"
+
+# Async traits without runtime dependency
+futures-core = "0.3"
+
+# For bitflags (AccountFlags, TransferFlags, etc.)
+bitflags = "2"
+
+# For random client ID generation
+rand = "0.8"
+
+[dev-dependencies]
+# For running async tests and examples
+tokio = { version = "1", features = ["net", "time", "rt-multi-thread", "macros", "io-util"] }
+
+# For blocking on futures in sync tests
+futures = "0.3"
+
+[features]
+default = []
+sync = ["futures"]
+
+[dependencies.futures]
+version = "0.3"
+optional = true
+
+# io_uring support (Linux only, required)
+[target.'cfg(target_os = "linux")'.dependencies]
+tokio-uring = "0.5"

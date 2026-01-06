@@ -1,0 +1,10 @@
+[workspace]
+members = ["tb-rs", "tb-web", "tb-gen"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+authors = ["David Soria Parra <david@soria.uk>"]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/tigerbeetle/tigerbeetle"
