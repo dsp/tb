@@ -1,5 +1,9 @@
 # tb-rs
 
+[![Crates.io](https://img.shields.io/crates/v/tb-rs.svg)](https://crates.io/crates/tb-rs)
+[![Documentation](https://docs.rs/tb-rs/badge.svg)](https://docs.rs/tb-rs)
+[![License](https://img.shields.io/crates/l/tb-rs.svg)](https://github.com/dsp/tb/blob/main/LICENSE)
+
 Native Rust client for [TigerBeetle](https://tigerbeetle.com), the financial transactions database.
 
 ## Compatibility
